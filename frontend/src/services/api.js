@@ -2,13 +2,11 @@ import axios from "axios";
 import { getToken } from "./authService";
 
 const api = axios.create({
-  baseURL:
-    process.env.REACT_APP_API_URL || "http://localhost:5000/api",
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
-
 
 api.interceptors.request.use((config) => {
   const token = getToken();
@@ -19,3 +17,4 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+

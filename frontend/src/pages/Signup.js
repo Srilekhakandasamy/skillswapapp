@@ -1,9 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 function Signup() {
-
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -14,8 +13,8 @@ function Signup() {
 
     try {
 
-      const res = await axios.post(
-        "/api/auth/signup",
+      const res = await api.post(
+        "/auth/signup",
         {
           name,
           email,
@@ -41,7 +40,7 @@ function Signup() {
     }
   };
 
-return (
+  return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-600 to-indigo-50">
       <div className="mx-auto flex min-h-screen max-w-5xl items-center px-4 py-10">
         <div className="w-full">
