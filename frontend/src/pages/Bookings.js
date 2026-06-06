@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import Navbar from "../components/Navbar";
 
 function Bookings() {
@@ -20,11 +20,7 @@ function Bookings() {
 
   const fetchBookings = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/bookings", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get("/bookings");
       setBookings(res.data);
     } catch (err) {
       console.log(err);
@@ -33,11 +29,7 @@ function Bookings() {
 
   const accept = async (id) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/bookings/${id}`,
-        { status: "accepted" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/bookings/${id}`, { status: "accepted" });
       alert("Request Accepted ✅");
       fetchBookings();
     } catch (err) {
@@ -48,11 +40,7 @@ function Bookings() {
 
   const reject = async (id) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/bookings/${id}`,
-        { status: "rejected" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/bookings/${id}`, { status: "rejected" });
       alert("Request Rejected ❌");
       fetchBookings();
     } catch (err) {
@@ -63,11 +51,7 @@ function Bookings() {
 
   const completeSession = async (id) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/bookings/${id}/complete`,
-        { goalCompleted: false },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/bookings/${id}/complete`, { goalCompleted: false });
       alert("Session marked completed ✅");
       fetchBookings();
     } catch (err) {
@@ -82,15 +66,11 @@ function Bookings() {
 
   const saveMeetingDetails = async (id) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/bookings/${id}/meeting`,
-        {
-          meetingDate: meetingDateById[id] || null,
-          meetingLink: meetingLinkById[id] || "",
-          meetingMessage: meetingMessageById[id] || "",
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/bookings/${id}/meeting`, {
+        meetingDate: meetingDateById[id] || null,
+        meetingLink: meetingLinkById[id] || "",
+        meetingMessage: meetingMessageById[id] || "",
+      });
       alert("Meeting details saved ✅");
       fetchBookings();
     } catch (err) {
@@ -98,7 +78,6 @@ function Bookings() {
       alert("Error saving meeting details ❌");
     }
   };
-
 
   useEffect(() => {
     if (!token) {
@@ -151,13 +130,13 @@ function Bookings() {
               }}
             >
               <p>
-                <b>From:</b> {b.sender?.name || "Unknown User"}
+                <b>From:</b> {b.senderId?.name || b.senderId?.email || "Unknown User"}
               </p>
               <p>
-                <b>To:</b> {b.receiver?.name || "Unknown User"}
+                <b>To:</b> {b.receiverId?.name || b.receiverId?.email || "Unknown User"}
               </p>
               <p>
-                <b>Requested Skill:</b> {b.skillRequestedId?.title || b.skillRequested}
+                <b>Requested Skill:</b> {b.skillRequestedId?.title || b.skillRequestedId?._id || b.skillRequested}
               </p>
               <p>
                 <b>Goal:</b> {b.sessionGoal}
@@ -168,11 +147,7 @@ function Bookings() {
                 <span
                   style={{
                     color:
-                      b.status === "accepted"
-                        ? "green"
-                        : b.status === "rejected"
-                        ? "red"
-                        : "orange",
+                      b.status === "accepted" ? "green" : b.status === "rejected" ? "red" : "orange",
                     fontWeight: "bold",
                   }}
                 >
@@ -180,7 +155,6 @@ function Bookings() {
                 </span>
               </p>
 
-              {/* Pending: receiver can accept/reject */}
               {b.status === "pending" && b.receiverId?._id === userId && (
                 <>
                   <button
@@ -213,9 +187,7 @@ function Bookings() {
                 </>
               )}
 
-              {/* Accepted: either participant can complete (until completed) */}
-              {b.status === "accepted" &&
-                b.completed !== true &&
+              {b.status === "accepted" && b.completed !== true &&
                 (b.receiverId?._id === userId || b.senderId?._id === userId) && (
                   <div style={{ marginTop: "10px" }}>
                     <button
@@ -234,7 +206,6 @@ function Bookings() {
                   </div>
                 )}
 
-              {/* Sender: meeting/contact details */}
               {b.status === "accepted" && b.senderId?._id === userId && (
                 <div style={{ marginTop: "15px", paddingTop: "10px", borderTop: "1px solid #eee" }}>
                   <h3 style={{ margin: "0 0 10px 0" }}>Meeting details</h3>
@@ -244,7 +215,12 @@ function Bookings() {
                     <input
                       type="datetime-local"
                       value={meetingDateById[b._id] ?? ""}
-                      onChange={(e) => setMeetingDateById((prev) => ({ ...prev, [b._id]: e.target.value ? new Date(e.target.value).toISOString() : null }))}
+                      onChange={(e) =>
+                        setMeetingDateById((prev) => ({
+                          ...prev,
+                          [b._id]: e.target.value ? new Date(e.target.value).toISOString() : null,
+                        }))
+                      }
                       style={{
                         width: "100%",
                         padding: "10px",
@@ -276,7 +252,9 @@ function Bookings() {
                     <textarea
                       placeholder="Share your availability, agenda, etc."
                       value={meetingMessageById[b._id] ?? ""}
-                      onChange={(e) => setMeetingMessageById((prev) => ({ ...prev, [b._id]: e.target.value }))}
+                      onChange={(e) =>
+                        setMeetingMessageById((prev) => ({ ...prev, [b._id]: e.target.value }))
+                      }
                       style={{
                         width: "100%",
                         padding: "10px",
@@ -303,14 +281,18 @@ function Bookings() {
                     Save meeting details
                   </button>
 
-                  {/* Show saved */}
                   {(b.meetingDate || b.meetingLink || b.meetingMessage) && (
                     <div style={{ marginTop: "12px", background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
-                      <p><b>Saved meeting:</b></p>
+                      <p>
+                        <b>Saved meeting:</b>
+                      </p>
                       {b.meetingDate && <p>Date: {new Date(b.meetingDate).toLocaleString()}</p>}
                       {b.meetingLink && (
                         <p>
-                          Link: <a href={b.meetingLink} target="_blank" rel="noreferrer">Open</a>
+                          Link:{" "}
+                          <a href={b.meetingLink} target="_blank" rel="noreferrer">
+                            Open
+                          </a>
                         </p>
                       )}
                       {b.meetingMessage && <p>Message: {b.meetingMessage}</p>}
@@ -318,28 +300,6 @@ function Bookings() {
                   )}
                 </div>
               )}
-
-              {/* Receiver: just show details if already saved */}
-              {b.status === "accepted" && b.senderId?._id !== userId && (
-                <div style={{ marginTop: "15px" }}>
-                  <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
-                    <p><b>Contact email:</b> {b.contactEmail || "Not provided"}</p>
-                    {(b.meetingDate || b.meetingLink || b.meetingMessage) && (
-                      <>
-                        <p><b>Meeting details:</b></p>
-                        {b.meetingDate && <p>Date: {new Date(b.meetingDate).toLocaleString()}</p>}
-                        {b.meetingLink && (
-                          <p>
-                            Link: <a href={b.meetingLink} target="_blank" rel="noreferrer">Open</a>
-                          </p>
-                        )}
-                        {b.meetingMessage && <p>Message: {b.meetingMessage}</p>}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
             </div>
           ))
         )}
@@ -347,7 +307,6 @@ function Bookings() {
     </div>
   );
 }
-
 
 export default Bookings;
 

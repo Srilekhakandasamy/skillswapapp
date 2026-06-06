@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import Navbar from "../components/Navbar";
 
 function Skills() {
+
 
   const [skills, setSkills] = useState([]);
 
@@ -40,8 +41,8 @@ function Skills() {
 
     try {
 
-      const res = await axios.get(
-        "http://localhost:5000/api/skills"
+      const res = await api.get(
+        "/skills"
       );
 
       setSkills(res.data);
@@ -57,8 +58,8 @@ function Skills() {
 
     try {
 
-      await axios.post(
-        "http://localhost:5000/api/skills",
+      await api.post(
+        "/skills",
         {
           title,
           description,
@@ -115,8 +116,8 @@ function Skills() {
       }
 
       // booking payload now matches backend contract
-      await axios.post(
-        "http://localhost:5000/api/bookings",
+      await api.post(
+        "/bookings",
         {
           receiverId,
           skillOfferedId,
