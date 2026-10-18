@@ -9,7 +9,7 @@ import Reviews from "./pages/Reviews";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={process.env.PUBLIC_URL || ""}>
       <Routes>
 
         {/* LOGIN */}
