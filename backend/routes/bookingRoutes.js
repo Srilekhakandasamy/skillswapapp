@@ -13,8 +13,8 @@ router.post("/", auth, async (req, res) => {
   try {
     const { receiverId, skillOfferedId, skillRequestedId, sessionGoal } = req.body;
 
-    if (!receiverId || !skillOfferedId || !skillRequestedId || !sessionGoal) {
-      return res.status(400).json({ message: "receiverId, skillOfferedId, skillRequestedId, and sessionGoal are required" });
+    if (!receiverId || !skillRequestedId || !sessionGoal) {
+      return res.status(400).json({ message: "receiverId, skillRequestedId, and sessionGoal are required" });
     }
 
     if (receiverId === req.user.id) {
@@ -22,18 +22,19 @@ router.post("/", auth, async (req, res) => {
     }
 
     const Skill = require("../models/Skill");
-    const offeredSkill = await Skill.findById(skillOfferedId);
+    let offeredSkill = null;
+    if (skillOfferedId) {
+      offeredSkill = await Skill.findById(skillOfferedId);
+    }
 
     const booking = new Booking({
-
       senderId: req.user.id,
       receiverId,
-      skillOfferedId,
+      skillOfferedId: skillOfferedId || undefined,
       skillRequestedId,
       sessionGoal,
       status: "pending",
       contactEmail: offeredSkill?.contactEmail || "",
-
     });
 
 
@@ -144,8 +145,10 @@ router.put("/:id", auth, async (req, res) => {
     booking.status = status;
     await booking.save();
 
-
-    await booking.populate("senderId", "name email").populate("receiverId", "name email");
+    await booking.populate([
+      { path: "senderId", select: "name email" },
+      { path: "receiverId", select: "name email" },
+    ]);
 
     res.json({ message: "Booking updated", booking });
   } catch (err) {
@@ -179,7 +182,10 @@ router.put("/:id/complete", auth, async (req, res) => {
 
     await booking.save();
 
-    await booking.populate("senderId", "name email").populate("receiverId", "name email");
+    await booking.populate([
+      { path: "senderId", select: "name email" },
+      { path: "receiverId", select: "name email" },
+    ]);
 
     res.json({ message: "Session marked completed", booking });
   } catch (err) {
@@ -214,7 +220,10 @@ router.put("/:id/meeting", auth, async (req, res) => {
 
     await booking.save();
 
-    await booking.populate("senderId", "name email").populate("receiverId", "name email");
+    await booking.populate([
+      { path: "senderId", select: "name email" },
+      { path: "receiverId", select: "name email" },
+    ]);
 
     res.json({ message: "Meeting details saved", booking });
   } catch (err) {

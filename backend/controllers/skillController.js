@@ -75,34 +75,49 @@ exports.matchSkills = async (req, res) => {
     const myOffers = await Skill.find({ user: userId, postType: 'offer' });
     const myRequests = await Skill.find({ user: userId, postType: 'request' });
 
-    const offerTitles = myOffers.map(s => s.title.toLowerCase());
-    const offerTags = myOffers.flatMap(s => s.tags || []);
+    const offerKeywords = Array.from(new Set([
+      ...myOffers.map(s => s.title?.trim().toLowerCase()),
+      ...myOffers.flatMap(s => (s.tags || []).map(t => t?.trim().toLowerCase()))
+    ])).filter(Boolean);
 
-    const requestTitles = myRequests.map(s => s.title.toLowerCase());
-    const requestTags = myRequests.flatMap(s => s.tags || []);
+    const requestKeywords = Array.from(new Set([
+      ...myRequests.map(s => s.title?.trim().toLowerCase()),
+      ...myRequests.flatMap(s => (s.tags || []).map(t => t?.trim().toLowerCase()))
+    ])).filter(Boolean);
 
-    // users who want my offers
+    if (offerKeywords.length === 0 || requestKeywords.length === 0) {
+      return res.json([]);
+    }
+
+    const escapeRegex = (str) => str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    const offerRegexes = offerKeywords.map(k => new RegExp(escapeRegex(k), "i"));
+    const requestRegexes = requestKeywords.map(k => new RegExp(escapeRegex(k), "i"));
+
+    // Users who want what I offer (they have a 'request' skill matching my offers)
     const usersWhoWantMyOffers = await Skill.find({
       postType: 'request',
       user: { $ne: userId },
       $or: [
-        { title: { $in: offerTitles } },
-        { tags: { $in: offerTags } }
+        { title: { $in: offerRegexes } },
+        { tags: { $in: offerRegexes } }
       ]
     }).distinct('user');
 
-    // users who offer what I want
+    // Users who offer what I want (they have an 'offer' skill matching my requests)
     const usersWhoOfferMyRequests = await Skill.find({
       postType: 'offer',
       user: { $ne: userId },
       $or: [
-        { title: { $in: requestTitles } },
-        { tags: { $in: requestTags } }
+        { title: { $in: requestRegexes } },
+        { tags: { $in: requestRegexes } }
       ]
     }).distinct('user');
 
-    // intersection
-    const mutualUserIds = usersWhoWantMyOffers.filter(u => usersWhoOfferMyRequests.includes(u.toString()));
+    // Safe comparison: convert ObjectIds to string
+    const offerUserSet = new Set(usersWhoOfferMyRequests.map(u => u.toString()));
+    const mutualUserIds = usersWhoWantMyOffers
+      .map(u => u.toString())
+      .filter(id => offerUserSet.has(id));
 
     const users = await User.find({ _id: { $in: mutualUserIds } }).select('name email rating totalReviews');
 

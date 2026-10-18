@@ -21,7 +21,7 @@ const bookingSchema = new mongoose.Schema(
     skillOfferedId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Skill",
-      required: true,
+      required: false,
     },
 
     // Receiver's requested / what sender wants to learn
